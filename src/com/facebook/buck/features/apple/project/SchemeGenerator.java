@@ -52,6 +52,7 @@ import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import com.google.common.collect.UnmodifiableIterator;
 
 /**
  * Collects target references and generates an xcscheme.
@@ -93,6 +94,7 @@ class SchemeGenerator {
           ImmutableMap<
               SchemeActionType, ImmutableMap<XCScheme.AdditionalActions, ImmutableList<String>>>>
       additionalSchemeActions;
+  private final boolean codeCoverageEnabled;
   private final Optional<String> applicationLanguage;
   private final Optional<String> applicationRegion;
 
@@ -120,6 +122,7 @@ class SchemeGenerator {
       XCScheme.LaunchAction.LaunchStyle launchStyle,
       Optional<XCScheme.LaunchAction.WatchInterface> watchInterface,
       Optional<String> notificationPayloadFile,
+      boolean codeCoverageEnabled,
       Optional<String> applicationLanguage,
       Optional<String> applicationRegion) {
     this.projectFilesystem = projectFilesystem;
@@ -141,9 +144,10 @@ class SchemeGenerator {
     this.expandVariablesBasedOn = expandVariablesBasedOn;
     this.additionalSchemeActions = additionalSchemeActions;
     this.notificationPayloadFile = notificationPayloadFile;
+    this.codeCoverageEnabled = codeCoverageEnabled;
     this.applicationLanguage = applicationLanguage;
     this.applicationRegion = applicationRegion;
-
+    
     LOG.verbose(
         "Generating scheme with build targets %s, test build targets %s, test bundle targets %s",
         orderedBuildTargets, orderedBuildTestTargets, orderedRunTestTargets);
@@ -248,6 +252,7 @@ class SchemeGenerator {
     ImmutableMap<SchemeActionType, ImmutableMap<String, String>> envVariables = ImmutableMap.of();
     Map<SchemeActionType, XCScheme.BuildableReference> envVariablesBasedOn = ImmutableMap.of();
     if (environmentVariables.isPresent()) {
+      environmentVariables.get();
       envVariables = environmentVariables.get();
       if (expandVariablesBasedOn.isPresent()) {
         envVariablesBasedOn = expandVariablesBasedOn.get().entrySet().stream()
@@ -260,6 +265,7 @@ class SchemeGenerator {
             Objects.requireNonNull(actionConfigNames.get(SchemeActionType.TEST)),
             Optional.ofNullable(envVariables.get(SchemeActionType.TEST)),
             Optional.ofNullable(envVariablesBasedOn.get(SchemeActionType.TEST)),
+            codeCoverageEnabled,
             additionalCommandsForSchemeAction(
                 SchemeActionType.TEST, AdditionalActions.PRE_SCHEME_ACTIONS, primaryBuildReference),
             additionalCommandsForSchemeAction(
@@ -455,7 +461,9 @@ class SchemeGenerator {
   public static Element serializeTestAction(Document doc, XCScheme.TestAction testAction) {
     Element testActionElem = doc.createElement("TestAction");
     serializePrePostActions(doc, testAction, testActionElem);
-
+    if (testAction.getCodeCoverageEnabled()) {
+      testActionElem.setAttribute("codeCoverageEnabled", "YES");
+    }
     // unless otherwise specified, use the Launch scheme's env variables like the xcode default
     testActionElem.setAttribute("shouldUseLaunchSchemeArgsEnv", "YES");
 
