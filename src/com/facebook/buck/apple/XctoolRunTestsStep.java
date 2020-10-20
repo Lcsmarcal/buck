@@ -260,11 +260,6 @@ class XctoolRunTestsStep implements Step {
         XCTOOL_ENV_VARIABLE_PREFIX + IMAGE_DIFF_DIR, snapshotImagesDiffPath.get());
     }
 
-    if (snapshotImagesDiffPath.isPresent()) {
-      environment.put(
-        XCTOOL_ENV_VARIABLE_PREFIX + IMAGE_DIFF_DIR, snapshotImagesDiffPath.get());
-    }
-
     environment.putAll(this.environmentOverrides);
     return ImmutableMap.copyOf(environment);
   }
